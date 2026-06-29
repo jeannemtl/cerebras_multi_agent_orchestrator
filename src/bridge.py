@@ -60,7 +60,7 @@ logging.basicConfig(
 log = logging.getLogger("bridge")
 
 # Add sibling agent-escrow directory first (lower priority)
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "agent-escrow"))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "agent-escrow"))
 # Add own directory last but at front (higher priority for local modules)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

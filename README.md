@@ -2,7 +2,7 @@
 
 Multi-agent orchestration with on-chain attestation and Stripe escrow, running 37x faster on Cerebras wafer-scale inference.
 
-WarpDAG decomposes prompts into layered task DAGs, dispatches them to AI agents, verifies results, attests batches on Solana, and releases escrow payments to agent wallets. The same pipeline runs simultaneously on Cerebras and a traditional GPU provider, with a live dashboard showing a side-by-side race.
+Cerebrain decomposes prompts into layered task DAGs, dispatches them to AI agents, verifies results, attests batches on Solana, and releases escrow payments to agent wallets. The same pipeline runs simultaneously on Cerebras and a traditional GPU provider, with a live dashboard showing a side-by-side race.
 
 ## Results
 
@@ -13,6 +13,30 @@ WarpDAG decomposes prompts into layered task DAGs, dispatches them to AI agents,
 | Task 3 | 1.3s | 51.2s |
 | **Total** | **3.9s** | **144.4s** |
 | **Speedup** | **37.1x** | |
+
+## Repo structure
+
+```
+cerebras_multi_agent_orchestrator/
+  start.sh              # One-command startup
+  dashboard.html         # Real-time dashboard (open in browser)
+  README.md
+  src/
+    bridge.py            # WebSocket server, orchestrates the full pipeline
+    agent_client.py      # Agent worker, calls Cerebras or GPU models
+    planner.py           # Decomposes prompts into task DAGs via Nemotron
+    task_dag.py          # DAG builder with dependency tracking
+    verifier.py          # Validates agent outputs
+    ready_window.py      # Batches verified tasks for attestation
+    agent_registry.py    # Agent registration and status tracking
+    stripe_charger.py    # Stripe payments (mock/test/live)
+    solana_attestor.py   # Solana attestation (mock/devnet)
+    benchmark_speed.py   # Standalone benchmark script
+  tests/
+    test_escrow_e2e.py   # End-to-end escrow test
+    quick_e2e.py         # Quick pipeline test
+  benchmark_results.json # Latest benchmark output
+```
 
 ## Requirements
 
@@ -37,10 +61,10 @@ pip install websockets aiohttp
 
 ### 3. API keys
 
-The code reads from `../.env` or `~/.hermes/.env`. Create one:
+Create a `.env` file in the repo root:
 
 ```bash
-cat > ../.env << 'EOF'
+cat > .env << 'EOF'
 CEREBRAS_API_KEY=your_cerebras_key
 OPENROUTER_API_KEY=your_openrouter_key
 NVIDIA_API_KEY=your_nvidia_key
@@ -126,21 +150,6 @@ Attestor (Solana on-chain proof)
   v
 Escrow (Stripe payment to agent wallets)
 ```
-
-### Components
-
-| File | Role |
-|------|------|
-| `bridge.py` | WebSocket server, orchestrates the full pipeline |
-| `agent_client.py` | Agent worker, calls Cerebras or GPU models |
-| `planner.py` | Decomposes prompts into task DAGs via Nemotron |
-| `task_dag.py` | DAG builder with dependency tracking |
-| `verifier.py` | Validates agent outputs |
-| `solana_attestor.py` | Mock/devnet Solana attestation |
-| `stripe_charger.py` | Mock/test/live Stripe payment handling |
-| `dashboard.html` | Real-time dashboard with race mode |
-| `benchmark_speed.py` | Standalone benchmark script |
-| `start.sh` | One-command startup |
 
 ### Stripe modes
 
