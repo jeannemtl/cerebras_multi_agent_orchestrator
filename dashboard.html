@@ -121,6 +121,87 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'SF Mono', 'Monaco', mo
   font-size: 9px; color: #aaa; max-height: 80px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;
   border-top: 1px solid #1a1a3e; }
 .task-result-empty { color: #555; font-style: italic; }
+
+/* ── Race Mode Split Panel ── */
+.race-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: #0a0a0f; z-index: 9999; display: none;
+  flex-direction: column; overflow: hidden;
+}
+.race-overlay.active { display: flex; }
+.race-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-bottom: 1px solid #0f3460;
+}
+.race-header h1 { font-size: 16px; color: #e94560; }
+.race-close {
+  background: #8b0000; color: white; border: none; border-radius: 4px;
+  padding: 5px 14px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: bold;
+}
+.race-close:hover { background: #a00; }
+.race-prompt-display {
+  padding: 8px 16px; background: #0d1117; border-bottom: 1px solid #1a1a3e;
+  font-size: 11px; color: #8a8a9a; max-height: 40px; overflow: hidden;
+}
+.race-body {
+  flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden;
+}
+.race-side {
+  display: flex; flex-direction: column; overflow: hidden; padding: 0;
+}
+.race-side.cerebras { border-right: 2px solid #5cb85c; }
+.race-side.gpu { border-left: 2px solid #e74c3c; }
+.race-side-header {
+  padding: 10px 16px; font-size: 14px; font-weight: bold; text-transform: uppercase;
+  letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;
+}
+.race-side.cerebras .race-side-header {
+  background: linear-gradient(90deg, #0d1f0d, #0d1117); color: #5cb85c;
+  border-bottom: 1px solid #2d6a2d;
+}
+.race-side.gpu .race-side-header {
+  background: linear-gradient(90deg, #1f0d0d, #0d1117); color: #e74c3c;
+  border-bottom: 1px solid #8b0000;
+}
+.race-timer {
+  font-size: 28px; font-weight: bold; font-variant-numeric: tabular-nums;
+}
+.race-side.cerebras .race-timer { color: #5cb85c; }
+.race-side.gpu .race-timer { color: #e74c3c; }
+.race-model-name { font-size: 10px; color: #8a8a9a; font-weight: normal; text-transform: none; letter-spacing: 0; }
+.race-tasks { flex: 1; overflow-y: auto; padding: 10px; }
+.race-task-card {
+  margin-bottom: 8px; padding: 10px; border-radius: 6px;
+  border: 1px solid #1a1a3e; background: #111827; transition: all 0.3s;
+}
+.race-side.cerebras .race-task-card { border-left: 3px solid #333; }
+.race-side.gpu .race-task-card { border-left: 3px solid #333; }
+.race-task-card.active { border-left-color: #f5a623; background: #1a150d; }
+.race-task-card.done { border-left-color: #5cb85c; background: #0d150d; }
+.race-task-card.error { border-left-color: #e74c3c; background: #1a0808; }
+.race-task-name { font-size: 11px; font-weight: bold; color: #e0e0e0; margin-bottom: 4px; }
+.race-task-status { font-size: 9px; padding: 2px 6px; border-radius: 3px; display: inline-block; }
+.race-task-status.pending { background: #1a1a2e; color: #666; }
+.race-task-status.running { background: #2a2a1a; color: #f5a623; }
+.race-task-status.done { background: #0d1f0d; color: #5cb85c; }
+.race-task-status.error { background: #2e1a1a; color: #e74c3c; }
+.race-task-latency { font-size: 14px; font-weight: bold; float: right; }
+.race-task-output {
+  margin-top: 6px; padding: 6px; background: #0a0a0f; border-radius: 4px;
+  font-size: 9px; color: #aaa; max-height: 150px; overflow-y: auto;
+  white-space: pre-wrap; word-wrap: break-word;
+}
+.race-task-output-label { font-size: 8px; color: #5cb85c; margin-bottom: 2px; text-transform: uppercase; }
+.race-finish-banner {
+  padding: 16px; text-align: center; background: #0d1117; border-top: 1px solid #1a1a3e;
+  display: none;
+}
+.race-finish-banner.active { display: block; }
+.race-speedup { font-size: 36px; font-weight: bold; }
+.race-speedup.cerebras { color: #5cb85c; }
+.race-speedup.gpu { color: #e74c3c; }
+.race-finish-detail { font-size: 11px; color: #8a8a9a; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -134,6 +215,7 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'SF Mono', 'Monaco', mo
     <button id="btn-plan" class="btn-action" onclick="planAndSubmit()" disabled>Plan &amp; Submit</button>
     <button id="btn-start" class="btn-action" onclick="startPipeline()" disabled>Start Pipeline</button>
     <button id="btn-bench" class="btn-small" onclick="runBenchmark()">⚡ Benchmark</button>
+    <button id="btn-race" class="btn-small" onclick="startRace()" style="background:#2a2a1a;color:#f5a623;font-weight:bold;">🏁 Race</button>
   </div>
 </div>
 
@@ -239,6 +321,43 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'SF Mono', 'Monaco', mo
     </div>
   </div>
 
+</div>
+
+<!-- ── Race Mode Overlay ── -->
+<div class="race-overlay" id="race-overlay">
+  <div class="race-header">
+    <h1>🏁 Live Race: Cerebras vs GPU</h1>
+    <button class="race-close" onclick="closeRace()">✕ Close</button>
+  </div>
+  <div class="race-prompt-display" id="race-prompt-display"></div>
+  <div class="race-body">
+    <!-- Cerebras side -->
+    <div class="race-side cerebras">
+      <div class="race-side-header">
+        <div>
+          <div>CEREBRAS</div>
+          <div class="race-model-name" id="race-cerebras-model">gemma-4-31b</div>
+        </div>
+        <div class="race-timer" id="race-cerebras-timer">0.0s</div>
+      </div>
+      <div class="race-tasks" id="race-cerebras-tasks"></div>
+    </div>
+    <!-- GPU side -->
+    <div class="race-side gpu">
+      <div class="race-side-header">
+        <div>
+          <div>GPU</div>
+          <div class="race-model-name" id="race-gpu-model">z-ai/glm-5.2</div>
+        </div>
+        <div class="race-timer" id="race-gpu-timer">0.0s</div>
+      </div>
+      <div class="race-tasks" id="race-gpu-tasks"></div>
+    </div>
+  </div>
+  <div class="race-finish-banner" id="race-finish-banner">
+    <div class="race-speedup" id="race-speedup-display">--</div>
+    <div class="race-finish-detail" id="race-finish-detail"></div>
+  </div>
 </div>
 
 <script>
@@ -486,6 +605,20 @@ function handleMessage(msg) {
   }
   else if (msg.type === 'benchmark_results') {
     handleBenchmarkResults(msg.data);
+  }
+  else if (msg.type === 'comparison_start') {
+    handleComparisonStart(msg.data);
+  }
+  else if (msg.type === 'comparison_progress') {
+    handleComparisonProgress(msg.data);
+  }
+  else if (msg.type === 'comparison_complete') {
+    handleComparisonComplete(msg.data);
+  }
+  else if (msg.type === 'comparison_error') {
+    alert('Race error: ' + (msg.data?.error || 'unknown'));
+    const btn = document.getElementById('btn-race');
+    if (btn) { btn.textContent = '🏁 Race'; btn.disabled = false; }
   }
   else if (msg.type === 'status') {
     statusData = msg.data;
@@ -964,6 +1097,184 @@ function handleBenchmarkResults(data) {
 
     tasksDiv.innerHTML = html;
   }
+}
+
+// ── Race Mode ──
+let raceState = null;
+let raceTimerInterval = null;
+
+function startRace() {
+  const prompt = document.getElementById('user-prompt').value.trim();
+  send({type: 'run_comparison', prompt: prompt});
+  const btn = document.getElementById('btn-race');
+  if (btn) { btn.textContent = 'Racing...'; btn.disabled = true; }
+}
+
+function closeRace() {
+  const overlay = document.getElementById('race-overlay');
+  if (overlay) overlay.classList.remove('active');
+  if (raceTimerInterval) { clearInterval(raceTimerInterval); raceTimerInterval = null; }
+  const btn = document.getElementById('btn-race');
+  if (btn) { btn.textContent = '🏁 Race'; btn.disabled = false; }
+}
+
+function handleComparisonStart(data) {
+  raceState = {
+    tasks: data.tasks || [],
+    cerebras: {tasks: {}, elapsed: 0, done: false, totalTime: 0},
+    gpu: {tasks: {}, elapsed: 0, done: false, totalTime: 0},
+    startTime: Date.now(),
+  };
+
+  // Show overlay
+  const overlay = document.getElementById('race-overlay');
+  overlay.classList.add('active');
+
+  // Hide finish banner
+  const banner = document.getElementById('race-finish-banner');
+  banner.classList.remove('active');
+
+  // Model names
+  const cModel = document.getElementById('race-cerebras-model');
+  const gModel = document.getElementById('race-gpu-model');
+  if (cModel) cModel.textContent = data.cerebras_model || 'gemma-4-31b';
+  if (gModel) gModel.textContent = data.glm_model || 'z-ai/glm-5.2';
+
+  // Prompt display
+  const promptDiv = document.getElementById('race-prompt-display');
+  if (promptDiv) {
+    const userPrompt = document.getElementById('user-prompt').value.trim();
+    promptDiv.textContent = userPrompt ? `Prompt: ${userPrompt.slice(0, 200)}` : 'Default benchmark tasks (Cerebras topic)';
+  }
+
+  // Initialize task cards on both sides
+  const cTasks = document.getElementById('race-cerebras-tasks');
+  const gTasks = document.getElementById('race-gpu-tasks');
+  cTasks.innerHTML = '';
+  gTasks.innerHTML = '';
+
+  raceState.tasks.forEach(task => {
+    const cardHtml = (side) => `
+      <div class="race-task-card" id="race-${side}-${task.id}">
+        <div class="race-task-name">${escapeHtml(task.name)}
+          <span class="race-task-latency" id="race-${side}-${task.id}-latency"></span>
+        </div>
+        <span class="race-task-status pending" id="race-${side}-${task.id}-status">pending</span>
+        <div class="race-task-output" id="race-${side}-${task.id}-output" style="display:none;"></div>
+      </div>
+    `;
+    cTasks.insertAdjacentHTML('beforeend', cardHtml('cerebras'));
+    gTasks.insertAdjacentHTML('beforeend', cardHtml('gpu'));
+  });
+
+  // Start timer
+  if (raceTimerInterval) clearInterval(raceTimerInterval);
+  raceTimerInterval = setInterval(updateRaceTimers, 100);
+}
+
+function updateRaceTimers() {
+  if (!raceState) return;
+  const elapsed = (Date.now() - raceState.startTime) / 1000;
+
+  // Cerebras timer: stop when done
+  const cTimer = document.getElementById('race-cerebras-timer');
+  if (cTimer) {
+    const cElapsed = raceState.cerebras.done ? raceState.cerebras.totalTime : elapsed;
+    cTimer.textContent = cElapsed.toFixed(1) + 's';
+  }
+
+  // GPU timer
+  const gTimer = document.getElementById('race-gpu-timer');
+  if (gTimer) {
+    const gElapsed = raceState.gpu.done ? raceState.gpu.totalTime : elapsed;
+    gTimer.textContent = gElapsed.toFixed(1) + 's';
+  }
+}
+
+function handleComparisonProgress(data) {
+  if (!raceState) return;
+  const side = data.side; // "cerebras" or "gpu"
+  const sideState = raceState[side];
+  if (!sideState) return;
+
+  const taskId = data.task_id;
+  const stage = data.stage;
+
+  const card = document.getElementById(`race-${side}-${taskId}`);
+  if (!card) return;
+
+  const statusBadge = document.getElementById(`race-${side}-${taskId}-status`);
+  const latencySpan = document.getElementById(`race-${side}-${taskId}-latency`);
+  const outputDiv = document.getElementById(`race-${side}-${taskId}-output`);
+
+  if (stage === 'starting') {
+    card.className = 'race-task-card active';
+    if (statusBadge) { statusBadge.className = 'race-task-status running'; statusBadge.textContent = 'running...'; }
+  } else if (stage === 'done') {
+    card.className = 'race-task-card done';
+    if (statusBadge) {
+      statusBadge.className = 'race-task-status done';
+      statusBadge.textContent = data.ok ? 'done' : 'failed';
+    }
+    if (latencySpan) {
+      latencySpan.textContent = data.latency_s ? data.latency_s.toFixed(1) + 's' : '';
+      latencySpan.style.color = side === 'cerebras' ? '#5cb85c' : '#e74c3c';
+    }
+    if (outputDiv && data.content_preview) {
+      outputDiv.style.display = 'block';
+      outputDiv.innerHTML = `<div class="race-task-output-label">Output (${data.content_length || 0} chars):</div>${escapeHtml(data.content_preview)}`;
+    }
+    sideState.tasks[taskId] = {done: true, latency_s: data.latency_s, ok: data.ok};
+  } else if (stage === 'error') {
+    card.className = 'race-task-card error';
+    if (statusBadge) { statusBadge.className = 'race-task-status error'; statusBadge.textContent = 'error'; }
+    if (outputDiv) {
+      outputDiv.style.display = 'block';
+      outputDiv.innerHTML = `<div class="race-task-output-label" style="color:#e74c3c;">Error:</div>${escapeHtml(data.error || 'unknown')}`;
+    }
+    sideState.tasks[taskId] = {done: true, error: data.error};
+  }
+}
+
+function handleComparisonComplete(data) {
+  if (!raceState) return;
+  if (raceTimerInterval) { clearInterval(raceTimerInterval); raceTimerInterval = null; }
+
+  raceState.cerebras.done = true;
+  raceState.cerebras.totalTime = data.cerebras.total_time_s || 0;
+  raceState.gpu.done = true;
+  raceState.gpu.totalTime = data.gpu.total_time_s || 0;
+
+  // Update final timers
+  const cTimer = document.getElementById('race-cerebras-timer');
+  if (cTimer) cTimer.textContent = raceState.cerebras.totalTime.toFixed(1) + 's';
+  const gTimer = document.getElementById('race-gpu-timer');
+  if (gTimer) gTimer.textContent = raceState.gpu.totalTime.toFixed(1) + 's';
+
+  // Show finish banner
+  const banner = document.getElementById('race-finish-banner');
+  banner.classList.add('active');
+
+  const speedup = data.total_speedup || 0;
+  const speedupDiv = document.getElementById('race-speedup-display');
+  const winner = data.winner || 'cerebras';
+  if (speedupDiv) {
+    speedupDiv.textContent = speedup > 1
+      ? `CEREBRAS ${speedup.toFixed(1)}x FASTER`
+      : `GPU ${(1/speedup).toFixed(1)}x FASTER`;
+    speedupDiv.className = `race-speedup ${winner}`;
+  }
+
+  const detail = document.getElementById('race-finish-detail');
+  if (detail) {
+    const c = data.cerebras;
+    const g = data.gpu;
+    detail.innerHTML = `Cerebras ${c.total_time_s.toFixed(1)}s (${c.successful}/${c.tasks.length} tasks) vs GPU ${g.total_time_s.toFixed(1)}s (${g.successful}/${g.tasks.length} tasks)`;
+  }
+
+  // Re-enable race button
+  const btn = document.getElementById('btn-race');
+  if (btn) { btn.textContent = '🏁 Race'; btn.disabled = false; }
 }
 
 // ── Init ──
